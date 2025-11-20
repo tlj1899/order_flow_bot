@@ -1019,7 +1019,6 @@ class OrderFlowTradingSystem:
                 confirmed, reason = method_func()
                 if confirmed:
                     confirmations.append(name)
-                reasons.append(f"{name}: {reason}")
             except Exception as e:
                 reasons.append(f"{name}: Error ({str(e)})")
         
@@ -1029,8 +1028,6 @@ class OrderFlowTradingSystem:
             return True, f"{num_confirmations}/{len(methods)} methods confirm ({', '.join(confirmations)})"
         else:
             return False, f"Only {num_confirmations}/{len(methods)} methods confirm (need {combined_min}). " + "; ".join(reasons)
-    
-    # ============================================
     # EXECUTE SELECTED METHOD
     # ============================================
     try:
