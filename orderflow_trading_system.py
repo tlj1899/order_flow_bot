@@ -852,62 +852,204 @@ class OrderFlowTradingSystem:
         
         return unrealized_pnls
 
-    def _check_price_momentum(self, symbol: str, direction: str, 
-                              confirmation_periods: int = 5,
-                              threshold: float = 0.6) -> Tuple[bool, str]:
-        """
-        Check if recent price action confirms the signal direction
+def _check_price_momentum(self, symbol: str, direction: str, 
+                          confirmation_periods: int = 8,
+                          method: str = 'net_change') -> Tuple[bool, str]:
+    """
+    Check if recent price action confirms the signal direction using multiple detection methods
     
-        This prevents "catching falling knives" - entering LONG while price is falling,
-        or entering SHORT while price is rising.
+    This prevents "catching falling knives" and false entries.
     
-        Args:
-            symbol: Trading symbol
-            direction: 'LONG' or 'SHORT' 
-            confirmation_periods: Number of recent prices to check
-            threshold: Percentage of prices that must show momentum (0.0-1.0)
+    Methods:
+    - 'tick_count': Original method - counts up vs down ticks (can miss trends with noise)
+    - 'net_change': Net price change from N periods ago (best for clear trends)
+    - 'ema': Compare current price to exponential moving average (smooth trend detection)
+    - 'linear_regression': Calculate trend slope (most sophisticated)
+    - 'combined': Require multiple methods to agree (most conservative)
+    
+    Args:
+        symbol: Trading symbol
+        direction: 'LONG' or 'SHORT' 
+        confirmation_periods: Number of recent prices to check
+        method: Detection method to use
         
-        Returns:
-            (confirmed: bool, reason: str)
-        """
-        price_history = self.market_data_cache[symbol]['price_history']
+    Returns:
+        (confirmed: bool, reason: str)
+    """
+    price_history = self.market_data_cache[symbol]['price_history']
     
-        if len(price_history) < confirmation_periods:
-            return False, f"Insufficient price history ({len(price_history)}/{confirmation_periods})"
+    if len(price_history) < confirmation_periods:
+        return False, f"Insufficient price history ({len(price_history)}/{confirmation_periods})"
     
-        # Get last N prices
-        recent_prices = list(price_history)[-confirmation_periods:]
+    # Get last N prices
+    recent_prices = list(price_history)[-confirmation_periods:]
     
-        # Count directional moves
+    # Import config for thresholds
+    try:
+        import config
+        tick_threshold = config.PRICE_CONFIRMATION_THRESHOLD
+        net_change_threshold = config.NET_CHANGE_THRESHOLD
+        ema_periods = config.EMA_PERIODS
+        lr_threshold = config.LINEAR_REGRESSION_THRESHOLD
+        combined_min = config.COMBINED_MIN_CONFIRMATIONS
+    except (ImportError, AttributeError):
+        tick_threshold = 0.6
+        net_change_threshold = 0.0003
+        ema_periods = 5
+        lr_threshold = 0.0001
+        combined_min = 2
+    
+    # ============================================
+    # METHOD 1: TICK COUNT (Original)
+    # ============================================
+    def check_tick_count():
         bullish_moves = 0
         bearish_moves = 0
-    
+        
         for i in range(1, len(recent_prices)):
             if recent_prices[i] > recent_prices[i-1]:
                 bullish_moves += 1
             elif recent_prices[i] < recent_prices[i-1]:
                 bearish_moves += 1
-    
+        
         total_moves = bullish_moves + bearish_moves
         if total_moves == 0:
             return False, "No price movement detected"
-    
-        bullish_percentage = bullish_moves / total_moves
-        bearish_percentage = bearish_moves / total_moves
-    
+        
+        bullish_pct = bullish_moves / total_moves
+        bearish_pct = bearish_moves / total_moves
+        
         if direction == 'LONG':
-            # For LONG, need bullish momentum (price rising)
-            if bullish_percentage >= threshold:
-                return True, f"Bullish momentum confirmed: {bullish_percentage:.0%} upward moves"
-            else:
-                return False, f"Insufficient bullish momentum: {bullish_percentage:.0%} (need {threshold:.0%})"
+            if bullish_pct >= tick_threshold:
+                return True, f"Tick count: {bullish_pct:.0%} bullish ticks"
+            return False, f"Tick count: Only {bullish_pct:.0%} bullish (need {tick_threshold:.0%})"
+        else:
+            if bearish_pct >= tick_threshold:
+                return True, f"Tick count: {bearish_pct:.0%} bearish ticks"
+            return False, f"Tick count: Only {bearish_pct:.0%} bearish (need {tick_threshold:.0%})"
     
+    # ============================================
+    # METHOD 2: NET CHANGE (Simple & Effective)
+    # ============================================
+    def check_net_change():
+        start_price = recent_prices[0]
+        end_price = recent_prices[-1]
+        net_change = (end_price - start_price) / start_price
+        
+        if direction == 'LONG':
+            if net_change >= net_change_threshold:
+                return True, f"Net change: +{net_change:.2%} (need +{net_change_threshold:.2%})"
+            return False, f"Net change: {net_change:+.2%} insufficient for LONG (need +{net_change_threshold:.2%})"
         else:  # SHORT
-            # For SHORT, need bearish momentum (price falling)
-            if bearish_percentage >= threshold:
-                return True, f"Bearish momentum confirmed: {bearish_percentage:.0%} downward moves"
-            else:
-                return False, f"Insufficient bearish momentum: {bearish_percentage:.0%} (need {threshold:.0%})"
+            if net_change <= -net_change_threshold:
+                return True, f"Net change: {net_change:.2%} (need -{net_change_threshold:.2%})"
+            return False, f"Net change: {net_change:+.2%} insufficient for SHORT (need -{net_change_threshold:.2%})"
+    
+    # ============================================
+    # METHOD 3: EMA COMPARISON
+    # ============================================
+    def check_ema():
+        # Calculate EMA
+        if len(recent_prices) < ema_periods:
+            return False, f"Insufficient data for EMA-{ema_periods}"
+        
+        # Simple EMA calculation
+        ema = recent_prices[0]
+        multiplier = 2 / (ema_periods + 1)
+        
+        for price in recent_prices[1:]:
+            ema = (price - ema) * multiplier + ema
+        
+        current_price = recent_prices[-1]
+        ema_diff = (current_price - ema) / ema
+        
+        if direction == 'LONG':
+            if current_price > ema and ema_diff > 0.0001:  # Price above EMA
+                return True, f"Price ${current_price:.2f} above EMA-{ema_periods} ${ema:.2f} ({ema_diff:+.2%})"
+            return False, f"Price ${current_price:.2f} not above EMA-{ema_periods} ${ema:.2f}"
+        else:  # SHORT
+            if current_price < ema and ema_diff < -0.0001:  # Price below EMA
+                return True, f"Price ${current_price:.2f} below EMA-{ema_periods} ${ema:.2f} ({ema_diff:+.2%})"
+            return False, f"Price ${current_price:.2f} not below EMA-{ema_periods} ${ema:.2f}"
+    
+    # ============================================
+    # METHOD 4: LINEAR REGRESSION SLOPE
+    # ============================================
+    def check_linear_regression():
+        import numpy as np
+        
+        # Create x-axis (time indices)
+        x = np.arange(len(recent_prices))
+        y = np.array(recent_prices)
+        
+        # Calculate linear regression slope
+        # slope = (n*Σxy - Σx*Σy) / (n*Σx² - (Σx)²)
+        n = len(x)
+        slope = (n * np.sum(x * y) - np.sum(x) * np.sum(y)) / (n * np.sum(x**2) - np.sum(x)**2)
+        
+        # Normalize slope by average price to get percentage
+        avg_price = np.mean(y)
+        normalized_slope = slope / avg_price
+        
+        if direction == 'LONG':
+            if normalized_slope >= lr_threshold:
+                return True, f"Linear regression: +{normalized_slope:.4%} upward slope"
+            return False, f"Linear regression: {normalized_slope:+.4%} slope insufficient for LONG"
+        else:  # SHORT
+            if normalized_slope <= -lr_threshold:
+                return True, f"Linear regression: {normalized_slope:.4%} downward slope"
+            return False, f"Linear regression: {normalized_slope:+.4%} slope insufficient for SHORT"
+    
+    # ============================================
+    # METHOD 5: COMBINED (Multiple Confirmations)
+    # ============================================
+    def check_combined():
+        confirmations = []
+        reasons = []
+        
+        # Test each method
+        methods = [
+            ('Net Change', check_net_change),
+            ('EMA', check_ema),
+            ('Linear Regression', check_linear_regression)
+        ]
+        
+        for name, method_func in methods:
+            try:
+                confirmed, reason = method_func()
+                if confirmed:
+                    confirmations.append(name)
+                reasons.append(f"{name}: {reason}")
+            except Exception as e:
+                reasons.append(f"{name}: Error ({str(e)})")
+        
+        num_confirmations = len(confirmations)
+        
+        if num_confirmations >= combined_min:
+            return True, f"{num_confirmations}/{len(methods)} methods confirm ({', '.join(confirmations)})"
+        else:
+            return False, f"Only {num_confirmations}/{len(methods)} methods confirm (need {combined_min}). " + "; ".join(reasons)
+    
+    # ============================================
+    # EXECUTE SELECTED METHOD
+    # ============================================
+    try:
+        if method == 'tick_count':
+            return check_tick_count()
+        elif method == 'net_change':
+            return check_net_change()
+        elif method == 'ema':
+            return check_ema()
+        elif method == 'linear_regression':
+            return check_linear_regression()
+        elif method == 'combined':
+            return check_combined()
+        else:
+            logger.warning(f"Unknown momentum method '{method}', falling back to 'net_change'")
+            return check_net_change()
+    except Exception as e:
+        logger.error(f"Error in momentum detection: {e}")
+        return False, f"Error in {method} detection: {str(e)}"
 
     def _calculate_tight_stop(self, symbol: str, entry_price: float, 
                               direction: str, percentage: float = 0.003) -> float:
@@ -932,6 +1074,64 @@ class OrderFlowTradingSystem:
             return entry_price - stop_distance
         else:
             return entry_price + stop_distance
+
+    def _apply_max_risk_cap(self, symbol: str, entry_price: float, stop_loss: float, 
+                        direction: str) -> float:
+    """
+    Apply maximum risk cap to prevent one big loser from wiping out winners
+    
+    CRITICAL: Limits risk per trade to MAX_RISK_TICKS configuration.
+    This prevents scenarios like: 5 winners × $200 = $1000, then 1 loser × $1500 = -$500 net
+    
+    Args:
+        symbol: Trading symbol
+        entry_price: Entry price
+        stop_loss: Original stop loss from liquidity zones
+        direction: 'LONG' or 'SHORT'
+        
+    Returns:
+        Adjusted stop loss (closer to entry if needed)
+    """
+    try:
+        import config
+        if not config.ENABLE_MAX_RISK_CAP:
+            return stop_loss
+        
+        max_risk_ticks = config.MAX_RISK_TICKS.get(symbol)
+        tick_size = config.TICK_SIZES.get(symbol)
+        tick_value = config.TICK_VALUES.get(symbol)
+        
+        if not all([max_risk_ticks, tick_size, tick_value]):
+            logger.warning(f"{symbol}: Missing max risk configuration, using original stop")
+            return stop_loss
+        
+    except (ImportError, AttributeError):
+        return stop_loss
+    
+    # Calculate current risk in ticks
+    risk_distance = abs(entry_price - stop_loss)
+    current_risk_ticks = risk_distance / tick_size
+    current_risk_dollars = current_risk_ticks * tick_value
+    
+    # If current risk exceeds max, tighten stop
+    if current_risk_ticks > max_risk_ticks:
+        max_risk_distance = max_risk_ticks * tick_size
+        max_risk_dollars = max_risk_ticks * tick_value
+        
+        if direction == 'LONG':
+            adjusted_stop = entry_price - max_risk_distance
+        else:
+            adjusted_stop = entry_price + max_risk_distance
+        
+        logger.warning(f"⚠️  {symbol} {direction}: Risk cap applied!")
+        logger.warning(f"   Original stop: ${stop_loss:.2f} ({current_risk_ticks:.0f} ticks = ${current_risk_dollars:.2f} risk)")
+        logger.warning(f"   Adjusted stop: ${adjusted_stop:.2f} ({max_risk_ticks} ticks = ${max_risk_dollars:.2f} risk MAX)")
+        logger.warning(f"   This prevents excessive losses that wipe out winning streaks")
+        
+        return adjusted_stop
+    else:
+        logger.info(f"✅ {symbol}: Risk within limit ({current_risk_ticks:.0f}/{max_risk_ticks} ticks = ${current_risk_dollars:.2f})")
+        return stop_loss
     
     def _check_position_exits(self):
         """Check if any positions should be closed based on stop loss, take profit, or order flow reversal"""
@@ -1282,9 +1482,15 @@ class OrderFlowTradingSystem:
             
                 # Check price momentum confirmation
                 if require_confirmation:
+                    # Get momentum detection method from config
+                    try:
+                        confirmation_method = config.PRICE_CONFIRMATION_METHOD
+                    except AttributeError:
+                        confirmation_method = 'net_change'
+                    
                     confirmed, reason = self._check_price_momentum(
                         symbol, signal.direction, 
-                        confirmation_periods, confirmation_threshold
+                        confirmation_periods, confirmation_method  # ADD THIS PARAMETER
                     )
                 
                     if not confirmed:
@@ -1323,6 +1529,11 @@ class OrderFlowTradingSystem:
                         symbol, signal.entry_price, signal.direction, default_distance
                     )
                     signal.stop_loss = optimal_stop
+
+                # 🆕 ADD THIS: Apply maximum risk cap to prevent excessive losses
+                signal.stop_loss = self._apply_max_risk_cap(
+                    symbol, signal.entry_price, signal.stop_loss, signal.direction
+                )
             
                 # Get optimal take profit before liquidity zone
                 optimal_target = self.liquidity_tracker.get_optimal_take_profit(

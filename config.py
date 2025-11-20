@@ -1,12 +1,28 @@
 # Configuration file for Order Flow Trading System
 # Copy this to config.py and fill in your credentials
 
+import config_secret
+
 # API Credentials
-DATABENTO_API_KEY = "db-GN9KE3vmDYRM3TvvjaSuEJH5px99Y"
-TOPSTEP_API_KEY = "4SVowkutjEhlr1TIrjm5w3p4SbdrhPEsWna4UVeKt3Q="
-TOPSTEP_USERNAME = "tapey"
-TOPSTEP_ACCOUNT_ID = "14544972"
+DATABENTO_API_KEY = config_secret.DATABENTO_API_KEY
+TOPSTEP_API_KEY = config_secret.TOPSTEP_API_KEY
+TOPSTEP_USERNAME = config_secret.TOPSTEP_USERNAME
+TOPSTEP_ACCOUNT_ID = config_secret.TOPSTEP_ACCOUNT_ID
 TOPSTEP_MLL = 0
+
+# Use net_change - best for trending markets
+PRICE_CONFIRMATION_METHOD = 'net_change'
+PRICE_CONFIRMATION_PERIODS = 8
+NET_CHANGE_THRESHOLD = 0.0003  # 0.03% minimum movement
+
+# Enable max risk - CRITICAL
+ENABLE_MAX_RISK_CAP = True
+MAX_RISK_TICKS = {
+    'GC': 25,   # $300 max risk
+    'SI': 25,   # $1,000 max risk  
+    'PL': 25,   # $100 max risk
+    'HG': 25,   # $375 max risk
+}
 
 # Trading Mode
 PAPER_MODE = False  # Set to False for live trading (use with extreme caution!)
