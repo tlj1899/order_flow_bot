@@ -852,52 +852,52 @@ class OrderFlowTradingSystem:
         
         return unrealized_pnls
 
-def _check_price_momentum(self, symbol: str, direction: str, 
-                          confirmation_periods: int = 8,
-                          method: str = 'net_change') -> Tuple[bool, str]:
-    """
-    Check if recent price action confirms the signal direction using multiple detection methods
-    
-    This prevents "catching falling knives" and false entries.
-    
-    Methods:
-    - 'tick_count': Original method - counts up vs down ticks (can miss trends with noise)
-    - 'net_change': Net price change from N periods ago (best for clear trends)
-    - 'ema': Compare current price to exponential moving average (smooth trend detection)
-    - 'linear_regression': Calculate trend slope (most sophisticated)
-    - 'combined': Require multiple methods to agree (most conservative)
-    
-    Args:
-        symbol: Trading symbol
-        direction: 'LONG' or 'SHORT' 
-        confirmation_periods: Number of recent prices to check
-        method: Detection method to use
+    def _check_price_momentum(self, symbol: str, direction: str, 
+                            confirmation_periods: int = 8,
+                            method: str = 'net_change') -> Tuple[bool, str]:
+        """
+        Check if recent price action confirms the signal direction using multiple detection methods
         
-    Returns:
-        (confirmed: bool, reason: str)
-    """
-    price_history = self.market_data_cache[symbol]['price_history']
-    
-    if len(price_history) < confirmation_periods:
-        return False, f"Insufficient price history ({len(price_history)}/{confirmation_periods})"
-    
-    # Get last N prices
-    recent_prices = list(price_history)[-confirmation_periods:]
-    
-    # Import config for thresholds
-    try:
-        import config
-        tick_threshold = config.PRICE_CONFIRMATION_THRESHOLD
-        net_change_threshold = config.NET_CHANGE_THRESHOLD
-        ema_periods = config.EMA_PERIODS
-        lr_threshold = config.LINEAR_REGRESSION_THRESHOLD
-        combined_min = config.COMBINED_MIN_CONFIRMATIONS
-    except (ImportError, AttributeError):
-        tick_threshold = 0.6
-        net_change_threshold = 0.0003
-        ema_periods = 5
-        lr_threshold = 0.0001
-        combined_min = 2
+        This prevents "catching falling knives" and false entries.
+        
+        Methods:
+        - 'tick_count': Original method - counts up vs down ticks (can miss trends with noise)
+        - 'net_change': Net price change from N periods ago (best for clear trends)
+        - 'ema': Compare current price to exponential moving average (smooth trend detection)
+        - 'linear_regression': Calculate trend slope (most sophisticated)
+        - 'combined': Require multiple methods to agree (most conservative)
+        
+        Args:
+            symbol: Trading symbol
+            direction: 'LONG' or 'SHORT' 
+            confirmation_periods: Number of recent prices to check
+            method: Detection method to use
+            
+        Returns:
+            (confirmed: bool, reason: str)
+        """
+        price_history = self.market_data_cache[symbol]['price_history']
+        
+        if len(price_history) < confirmation_periods:
+            return False, f"Insufficient price history ({len(price_history)}/{confirmation_periods})"
+        
+        # Get last N prices
+        recent_prices = list(price_history)[-confirmation_periods:]
+        
+        # Import config for thresholds
+        try:
+            import config
+            tick_threshold = config.PRICE_CONFIRMATION_THRESHOLD
+            net_change_threshold = config.NET_CHANGE_THRESHOLD
+            ema_periods = config.EMA_PERIODS
+            lr_threshold = config.LINEAR_REGRESSION_THRESHOLD
+            combined_min = config.COMBINED_MIN_CONFIRMATIONS
+        except (ImportError, AttributeError):
+            tick_threshold = 0.6
+            net_change_threshold = 0.0003
+            ema_periods = 5
+            lr_threshold = 0.0001
+            combined_min = 2
     
     # ============================================
     # METHOD 1: TICK COUNT (Original)
