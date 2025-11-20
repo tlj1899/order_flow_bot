@@ -1077,61 +1077,61 @@ def _check_price_momentum(self, symbol: str, direction: str,
 
     def _apply_max_risk_cap(self, symbol: str, entry_price: float, stop_loss: float, 
                         direction: str) -> float:
-    """
-    Apply maximum risk cap to prevent one big loser from wiping out winners
-    
-    CRITICAL: Limits risk per trade to MAX_RISK_TICKS configuration.
-    This prevents scenarios like: 5 winners × $200 = $1000, then 1 loser × $1500 = -$500 net
-    
-    Args:
-        symbol: Trading symbol
-        entry_price: Entry price
-        stop_loss: Original stop loss from liquidity zones
-        direction: 'LONG' or 'SHORT'
+        """
+        Apply maximum risk cap to prevent one big loser from wiping out winners
         
-    Returns:
-        Adjusted stop loss (closer to entry if needed)
-    """
-    try:
-        import config
-        if not config.ENABLE_MAX_RISK_CAP:
+        CRITICAL: Limits risk per trade to MAX_RISK_TICKS configuration.
+        This prevents scenarios like: 5 winners × $200 = $1000, then 1 loser × $1500 = -$500 net
+        
+        Args:
+            symbol: Trading symbol
+            entry_price: Entry price
+            stop_loss: Original stop loss from liquidity zones
+            direction: 'LONG' or 'SHORT'
+            
+        Returns:
+            Adjusted stop loss (closer to entry if needed)
+        """
+        try:
+            import config
+            if not config.ENABLE_MAX_RISK_CAP:
+                return stop_loss
+            
+            max_risk_ticks = config.MAX_RISK_TICKS.get(symbol)
+            tick_size = config.TICK_SIZES.get(symbol)
+            tick_value = config.TICK_VALUES.get(symbol)
+            
+            if not all([max_risk_ticks, tick_size, tick_value]):
+                logger.warning(f"{symbol}: Missing max risk configuration, using original stop")
+                return stop_loss
+            
+        except (ImportError, AttributeError):
             return stop_loss
         
-        max_risk_ticks = config.MAX_RISK_TICKS.get(symbol)
-        tick_size = config.TICK_SIZES.get(symbol)
-        tick_value = config.TICK_VALUES.get(symbol)
+        # Calculate current risk in ticks
+        risk_distance = abs(entry_price - stop_loss)
+        current_risk_ticks = risk_distance / tick_size
+        current_risk_dollars = current_risk_ticks * tick_value
         
-        if not all([max_risk_ticks, tick_size, tick_value]):
-            logger.warning(f"{symbol}: Missing max risk configuration, using original stop")
-            return stop_loss
-        
-    except (ImportError, AttributeError):
-        return stop_loss
-    
-    # Calculate current risk in ticks
-    risk_distance = abs(entry_price - stop_loss)
-    current_risk_ticks = risk_distance / tick_size
-    current_risk_dollars = current_risk_ticks * tick_value
-    
-    # If current risk exceeds max, tighten stop
-    if current_risk_ticks > max_risk_ticks:
-        max_risk_distance = max_risk_ticks * tick_size
-        max_risk_dollars = max_risk_ticks * tick_value
-        
-        if direction == 'LONG':
-            adjusted_stop = entry_price - max_risk_distance
+        # If current risk exceeds max, tighten stop
+        if current_risk_ticks > max_risk_ticks:
+            max_risk_distance = max_risk_ticks * tick_size
+            max_risk_dollars = max_risk_ticks * tick_value
+            
+            if direction == 'LONG':
+                adjusted_stop = entry_price - max_risk_distance
+            else:
+                adjusted_stop = entry_price + max_risk_distance
+            
+            logger.warning(f"⚠️  {symbol} {direction}: Risk cap applied!")
+            logger.warning(f"   Original stop: ${stop_loss:.2f} ({current_risk_ticks:.0f} ticks = ${current_risk_dollars:.2f} risk)")
+            logger.warning(f"   Adjusted stop: ${adjusted_stop:.2f} ({max_risk_ticks} ticks = ${max_risk_dollars:.2f} risk MAX)")
+            logger.warning(f"   This prevents excessive losses that wipe out winning streaks")
+            
+            return adjusted_stop
         else:
-            adjusted_stop = entry_price + max_risk_distance
-        
-        logger.warning(f"⚠️  {symbol} {direction}: Risk cap applied!")
-        logger.warning(f"   Original stop: ${stop_loss:.2f} ({current_risk_ticks:.0f} ticks = ${current_risk_dollars:.2f} risk)")
-        logger.warning(f"   Adjusted stop: ${adjusted_stop:.2f} ({max_risk_ticks} ticks = ${max_risk_dollars:.2f} risk MAX)")
-        logger.warning(f"   This prevents excessive losses that wipe out winning streaks")
-        
-        return adjusted_stop
-    else:
-        logger.info(f"✅ {symbol}: Risk within limit ({current_risk_ticks:.0f}/{max_risk_ticks} ticks = ${current_risk_dollars:.2f})")
-        return stop_loss
+            logger.info(f"✅ {symbol}: Risk within limit ({current_risk_ticks:.0f}/{max_risk_ticks} ticks = ${current_risk_dollars:.2f})")
+            return stop_loss
     
     def _check_position_exits(self):
         """Check if any positions should be closed based on stop loss, take profit, or order flow reversal"""
