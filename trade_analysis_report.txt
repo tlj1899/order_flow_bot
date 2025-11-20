@@ -1,0 +1,84 @@
+================================================================================
+COMPREHENSIVE TRADE ANALYSIS REPORT
+Generated: 2025-11-19 10:08:29
+================================================================================
+
+OVERALL PERFORMANCE
+--------------------------------------------------------------------------------
+Total Trades:        20
+Winning Trades:      11 (55.0%)
+Losing Trades:       9 (45.0%)
+Total PnL:           $-998.75
+Average Win:         $282.84
+Average Loss:        $-456.67
+Largest Win:         $462.50
+Largest Loss:        $-1,125.00
+Profit Factor:       0.76
+
+PERFORMANCE BY SYMBOL
+--------------------------------------------------------------------------------
+
+HG:
+  Trades: 1 | Win Rate: 100.0% | PnL: $68.75
+  Avg Win: $68.75 | Avg Loss: $0.00
+  Profit Factor: 0.00
+
+PL:
+  Trades: 5 | Win Rate: 40.0% | PnL: $-125.00
+  Avg Win: $250.00 | Avg Loss: $-208.33
+  Profit Factor: 0.80
+
+SI:
+  Trades: 3 | Win Rate: 66.7% | PnL: $-387.50
+  Avg Win: $368.75 | Avg Loss: $-1,125.00
+  Profit Factor: 0.66
+
+GC:
+  Trades: 11 | Win Rate: 54.5% | PnL: $-555.00
+  Avg Win: $300.83 | Avg Loss: $-472.00
+  Profit Factor: 0.76
+
+PERFORMANCE BY DIRECTION
+--------------------------------------------------------------------------------
+Direction  Total Trades  Wins  Losses  Win Rate  Total PnL     Avg PnL  Profit Factor
+     LONG             6     4       2 66.666667     635.00  105.833333       2.411111
+    SHORT            14     7       7 50.000000   -1633.75 -116.696429       0.553620
+
+PERFORMANCE BY EXIT REASON
+--------------------------------------------------------------------------------
+                                                                        Exit Reason  Count  Wins  Win Rate  Total PnL     Avg PnL
+                                                                        TAKE_PROFIT      6     6     100.0    1922.50  320.416667
+        ORDER_FLOW_REVERSAL: Strong buy imbalance: 0.50; Aggressive buying detected      2     2     100.0     531.25  265.625000
+ ORDER_FLOW_REVERSAL: Negative cumulative delta: -1107; Aggressive selling detected      1     1     100.0     310.00  310.000000
+ORDER_FLOW_REVERSAL: Strong sell imbalance: -0.78; Negative cumulative delta: -3060      1     1     100.0     275.00  275.000000
+     ORDER_FLOW_REVERSAL: Strong sell imbalance: -0.43; Aggressive selling detected      1     1     100.0      72.50   72.500000
+                                                                          STOP_LOSS      9     0       0.0   -4110.00 -456.666667
+
+PERFORMANCE BY TRADING SESSION
+--------------------------------------------------------------------------------
+ Session  Trades  Wins  Win Rate  Total PnL  Avg PnL
+New York      20    11      55.0    -998.75 -49.9375
+
+LOSING TRADE PATTERNS
+--------------------------------------------------------------------------------
+Total Losses: 9
+Total Loss Amount: -4109.999999999953
+Avg Loss: -456.6666666666614
+Worst Symbol: GC
+Worst Symbol Loss: -2359.9999999999454
+Worst Direction: SHORT
+Most Common Exit: STOP_LOSS
+
+Losses by Symbol:
+  GC: 5 losses
+  PL: 3 losses
+  SI: 1 losses
+
+Avg Loss by Symbol:
+  GC: $-472.00
+  PL: $-208.33
+  SI: $-1,125.00
+Worst Hour: 14
+Worst Hour Loss: -3035.000000000009
+
+================================================================================

@@ -1,0 +1,5 @@
+config_secret.py
+__pycache__/
+orderflow/
+*.db*
+*.png

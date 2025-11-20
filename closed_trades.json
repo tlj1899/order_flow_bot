@@ -1,0 +1,362 @@
+[
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4096.5,
+    "exit": 4094.4,
+    "pnl": -209.9999999999909,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T16:01:36.183694+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4088.2,
+    "exit": 4091.05,
+    "pnl": 285.0000000000364,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T16:04:37.227218+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4093.75,
+    "exit": 4088.75,
+    "pnl": -500.0,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T16:10:37.995802+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4092.8999999999996,
+    "exit": 4095.35,
+    "pnl": 245.00000000002728,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T16:15:08.919136+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4085.15,
+    "exit": 4082.75,
+    "pnl": -240.0000000000091,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T16:18:39.399096+00:00"
+  },
+  {
+    "symbol": "PL",
+    "direction": "SHORT",
+    "entry": 1560.05,
+    "exit": 1560.0,
+    "pnl": 2.4999999999977263,
+    "reason": "ORDER_FLOW_REVERSAL: Strong buy imbalance: 0.50; Aggressive buying detected",
+    "timestamp": "2025-11-19T16:19:39.107201+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "SHORT",
+    "entry": 4082.0,
+    "exit": 4075.3,
+    "pnl": 669.9999999999818,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T16:26:41.485886+00:00"
+  },
+  {
+    "symbol": "PL",
+    "direction": "SHORT",
+    "entry": 1555.1,
+    "exit": 1554.0500000000002,
+    "pnl": 52.49999999998636,
+    "reason": "ORDER_FLOW_REVERSAL: Strong buy imbalance: 0.43; Aggressive buying detected",
+    "timestamp": "2025-11-19T16:28:41.083870+00:00"
+  },
+  {
+    "symbol": "SI",
+    "direction": "SHORT",
+    "entry": 51.25,
+    "exit": 50.835,
+    "pnl": 2074.999999999996,
+    "reason": "ORDER_FLOW_REVERSAL: Strong buy imbalance: 0.60; Aggressive buying detected",
+    "timestamp": "2025-11-19T16:32:42.258166+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "SHORT",
+    "entry": 4079.1499999999996,
+    "exit": 4074.95,
+    "pnl": 419.9999999999818,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T16:33:11.987870+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4073.2,
+    "exit": 4075.95,
+    "pnl": 275.0,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T16:42:44.075514+00:00"
+  },
+  {
+    "symbol": "PL",
+    "direction": "SHORT",
+    "entry": 1552.5,
+    "exit": 1546.75,
+    "pnl": 287.5,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T17:02:45.843008+00:00"
+  },
+  {
+    "symbol": "SI",
+    "direction": "SHORT",
+    "entry": 50.542500000000004,
+    "exit": 50.47,
+    "pnl": 362.5000000000256,
+    "reason": "ORDER_FLOW_REVERSAL: Strong buy imbalance: 0.71; Aggressive buying detected",
+    "timestamp": "2025-11-19T17:03:15.651350+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4074.15,
+    "exit": 4066.6000000000004,
+    "pnl": -754.9999999999727,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T17:03:45.790187+00:00"
+  },
+  {
+    "symbol": "SI",
+    "direction": "SHORT",
+    "entry": 50.165,
+    "exit": 50.302499999999995,
+    "pnl": -687.4999999999786,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T17:11:17.854204+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4059.6000000000004,
+    "exit": 4064.15,
+    "pnl": 454.9999999999727,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T17:11:27.322644+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4064.45,
+    "exit": 4067.15,
+    "pnl": 270.0000000000273,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T17:17:48.402746+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4070.6499999999996,
+    "exit": 4067.75,
+    "pnl": -289.9999999999636,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T17:26:50.003851+00:00"
+  },
+  {
+    "symbol": "PL",
+    "direction": "SHORT",
+    "entry": 1549.95,
+    "exit": 1551.35,
+    "pnl": -69.99999999999318,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T17:27:19.866093+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4071.05,
+    "exit": 4068.85,
+    "pnl": -220.00000000002728,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T17:35:21.807601+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4076.15,
+    "exit": 4073.95,
+    "pnl": -220.00000000002728,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T17:44:22.778587+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4076.45,
+    "exit": 4080.95,
+    "pnl": 450.0,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T17:50:54.686302+00:00"
+  },
+  {
+    "symbol": "HG",
+    "direction": "SHORT",
+    "entry": 4.9982500000000005,
+    "exit": 5.013999999999999,
+    "pnl": -393.7499999999705,
+    "reason": "ORDER_FLOW_REVERSAL: Strong buy imbalance: 0.50; Positive cumulative delta: 3335",
+    "timestamp": "2025-11-19T17:52:55.268483+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4077.2,
+    "exit": 4080.1,
+    "pnl": 290.0000000000091,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T17:57:26.479785+00:00"
+  },
+  {
+    "symbol": "SI",
+    "direction": "SHORT",
+    "entry": 50.6475,
+    "exit": 50.775000000000006,
+    "pnl": -637.5000000000241,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T18:06:30.638677+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4084.1,
+    "exit": 4084.65,
+    "pnl": 55.00000000001819,
+    "reason": "ORDER_FLOW_REVERSAL: Strong sell imbalance: -0.50; Aggressive selling detected",
+    "timestamp": "2025-11-19T18:11:32.076389+00:00"
+  },
+  {
+    "symbol": "HG",
+    "direction": "LONG",
+    "entry": 5.02225,
+    "exit": 5.0295000000000005,
+    "pnl": 181.25000000002166,
+    "reason": "ORDER_FLOW_REVERSAL: Strong sell imbalance: -0.60; Aggressive selling detected",
+    "timestamp": "2025-11-19T18:14:02.862562+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "SHORT",
+    "entry": 4084.1000000000004,
+    "exit": 4086.05,
+    "pnl": -194.9999999999818,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T18:25:05.670203+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "SHORT",
+    "entry": 4082.9,
+    "exit": 4082.95,
+    "pnl": -4.999999999972715,
+    "reason": "ORDER_FLOW_REVERSAL: Strong buy imbalance: 0.67; Positive cumulative delta: 13170",
+    "timestamp": "2025-11-19T18:30:07.425141+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4084.95,
+    "exit": 4082.8,
+    "pnl": -214.99999999996362,
+    "reason": "ORDER_FLOW_REVERSAL: Strong sell imbalance: -0.50; Aggressive selling detected",
+    "timestamp": "2025-11-19T18:38:39.097739+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4081.6499999999996,
+    "exit": 4085.25,
+    "pnl": 360.0000000000364,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T18:50:42.337001+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4090.75,
+    "exit": 4089.05,
+    "pnl": -169.9999999999818,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T18:55:44.302943+00:00"
+  },
+  {
+    "symbol": "PL",
+    "direction": "SHORT",
+    "entry": 1555.7,
+    "exit": 1561.4499999999998,
+    "pnl": -287.49999999998863,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T18:57:15.024572+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4084.65,
+    "exit": 4084.8999999999996,
+    "pnl": 24.999999999954525,
+    "reason": "ORDER_FLOW_REVERSAL: Strong sell imbalance: -0.50; Aggressive selling detected",
+    "timestamp": "2025-11-19T19:06:18.615922+00:00"
+  },
+  {
+    "symbol": "SI",
+    "direction": "SHORT",
+    "entry": 50.942499999999995,
+    "exit": 50.894999999999996,
+    "pnl": 237.49999999999716,
+    "reason": "ORDER_FLOW_REVERSAL: Strong buy imbalance: 0.60; Aggressive buying detected",
+    "timestamp": "2025-11-19T19:08:18.485776+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4081.75,
+    "exit": 4078.6000000000004,
+    "pnl": -314.9999999999636,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T19:11:48.663601+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4077.85,
+    "exit": 4073.85,
+    "pnl": -400.0,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T19:15:50.050546+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4079.15,
+    "exit": 4074.1000000000004,
+    "pnl": -504.9999999999727,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T19:22:51.498210+00:00"
+  },
+  {
+    "symbol": "SI",
+    "direction": "SHORT",
+    "entry": 50.739999999999995,
+    "exit": 50.775000000000006,
+    "pnl": -175.000000000054,
+    "reason": "STOP_LOSS",
+    "timestamp": "2025-11-19T19:30:53.941985+00:00"
+  },
+  {
+    "symbol": "GC",
+    "direction": "LONG",
+    "entry": 4071.15,
+    "exit": 4075.45,
+    "pnl": 429.9999999999727,
+    "reason": "TAKE_PROFIT",
+    "timestamp": "2025-11-19T19:35:25.907453+00:00"
+  }
+]

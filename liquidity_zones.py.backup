@@ -1,0 +1,458 @@
+"""
+Liquidity Zone Detection and Tracking System
+
+Tracks liquidity zones across all instruments with persistent storage,
+behavioral analysis, and confidence scoring for optimal stop/target placement.
+"""
+
+import json
+import sqlite3
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Tuple
+from collections import defaultdict, deque
+from dataclasses import dataclass, asdict
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class LiquidityZone:
+    """Represents a tracked liquidity zone"""
+    symbol: str
+    price: float
+    zone_type: str  # 'support', 'resistance', 'round_number', 'session_level'
+    confidence: float  # 0.0 to 1.0
+    hit_count: int
+    rejection_count: int
+    breakthrough_count: int
+    consolidation_count: int
+    last_interaction: datetime
+    created_at: datetime
+    
+    # Behavioral patterns
+    tends_to_reject_first: bool = False  # Rejects on first test
+    tends_to_consolidate: bool = False   # Consolidates before decision
+    tends_to_melt_through: bool = False  # Melts through easily
+    
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON storage"""
+        data = asdict(self)
+        # Convert datetime to ISO format strings
+        data['last_interaction'] = self.last_interaction.isoformat()
+        data['created_at'] = self.created_at.isoformat()
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> 'LiquidityZone':
+        """Create from dictionary"""
+        # Convert ISO strings back to datetime
+        data['last_interaction'] = datetime.fromisoformat(data['last_interaction'])
+        data['created_at'] = datetime.fromisoformat(data['created_at'])
+        return cls(**data)
+
+
+class LiquidityZoneTracker:
+    """
+    Tracks liquidity zones with persistent storage and behavioral analysis
+    """
+    
+    def __init__(self, db_path: str = 'liquidity_zones.db'):
+        self.db_path = db_path
+        self.zones: Dict[str, List[LiquidityZone]] = defaultdict(list)
+        
+        # Price history for zone detection (last 100 prices per symbol)
+        self.price_history: Dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
+        
+        # Volume profile tracking (price_level -> volume)
+        self.volume_profile: Dict[str, Dict[float, float]] = defaultdict(lambda: defaultdict(float))
+        
+        # Predefined round number zones
+        self.round_number_intervals = {
+            'NQ': [25, 50, 100],  # $25, $50, $100 levels
+            'GC': [5, 10],         # $5, $10 levels
+            'SI': [0.25, 0.50],    # $0.25, $0.50 levels
+            'PL': [10, 25],        # $10, $25 levels
+            'HG': [0.05, 0.10]     # $0.05, $0.10 levels
+        }
+        
+        # Session level tracking
+        self.session_levels: Dict[str, Dict[str, float]] = defaultdict(dict)
+        
+        self._init_database()
+        self._load_zones()
+        
+        logger.info("LiquidityZoneTracker initialized")
+    
+    def _init_database(self):
+        """Initialize SQLite database for persistent storage"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS liquidity_zones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    symbol TEXT NOT NULL,
+                    price REAL NOT NULL,
+                    zone_type TEXT NOT NULL,
+                    confidence REAL NOT NULL,
+                    hit_count INTEGER NOT NULL,
+                    rejection_count INTEGER NOT NULL,
+                    breakthrough_count INTEGER NOT NULL,
+                    consolidation_count INTEGER NOT NULL,
+                    last_interaction TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    tends_to_reject_first INTEGER NOT NULL,
+                    tends_to_consolidate INTEGER NOT NULL,
+                    tends_to_melt_through INTEGER NOT NULL,
+                    UNIQUE(symbol, price, zone_type)
+                )
+            ''')
+            
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS zone_interactions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    symbol TEXT NOT NULL,
+                    price REAL NOT NULL,
+                    interaction_type TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    price_before REAL,
+                    price_after REAL,
+                    consolidation_time INTEGER
+                )
+            ''')
+            
+            conn.commit()
+    
+    def _load_zones(self):
+        """Load zones from database"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('SELECT * FROM liquidity_zones')
+            
+            for row in cursor:
+                zone = LiquidityZone(
+                    symbol=row[1],
+                    price=row[2],
+                    zone_type=row[3],
+                    confidence=row[4],
+                    hit_count=row[5],
+                    rejection_count=row[6],
+                    breakthrough_count=row[7],
+                    consolidation_count=row[8],
+                    last_interaction=datetime.fromisoformat(row[9]),
+                    created_at=datetime.fromisoformat(row[10]),
+                    tends_to_reject_first=bool(row[11]),
+                    tends_to_consolidate=bool(row[12]),
+                    tends_to_melt_through=bool(row[13])
+                )
+                self.zones[zone.symbol].append(zone)
+        
+        logger.info(f"Loaded {sum(len(z) for z in self.zones.values())} liquidity zones from database")
+    
+    def _save_zone(self, zone: LiquidityZone):
+        """Save or update zone in database"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT OR REPLACE INTO liquidity_zones 
+                (symbol, price, zone_type, confidence, hit_count, rejection_count, 
+                 breakthrough_count, consolidation_count, last_interaction, created_at,
+                 tends_to_reject_first, tends_to_consolidate, tends_to_melt_through)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                zone.symbol, zone.price, zone.zone_type, zone.confidence,
+                zone.hit_count, zone.rejection_count, zone.breakthrough_count,
+                zone.consolidation_count,
+                zone.last_interaction.isoformat(), zone.created_at.isoformat(),
+                int(zone.tends_to_reject_first), int(zone.tends_to_consolidate),
+                int(zone.tends_to_melt_through)
+            ))
+            conn.commit()
+    
+    def _log_interaction(self, symbol: str, price: float, interaction_type: str,
+                        price_before: Optional[float] = None, price_after: Optional[float] = None,
+                        consolidation_time: int = 0):
+        """Log a zone interaction to database"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO zone_interactions
+                (symbol, price, interaction_type, timestamp, price_before, price_after, consolidation_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                symbol, price, interaction_type, datetime.now(timezone.utc).isoformat(),
+                price_before, price_after, consolidation_time
+            ))
+            conn.commit()
+    
+    def update_price(self, symbol: str, price: float, volume: float = 0):
+        """Update price history and volume profile"""
+        self.price_history[symbol].append(price)
+        
+        # Update volume profile (round to reasonable precision)
+        if symbol in ['GC', 'PL']:
+            price_level = round(price, 1)  # $0.10 precision
+        elif symbol == 'SI':
+            price_level = round(price, 2)  # $0.01 precision
+        elif symbol == 'HG':
+            price_level = round(price, 3)  # $0.001 precision
+        else:  # NQ
+            price_level = round(price, 2)  # $0.01 precision
+        
+        self.volume_profile[symbol][price_level] += volume
+    
+    def detect_round_number_zones(self, symbol: str, price: float) -> List[float]:
+        """Detect nearby round number zones"""
+        if symbol not in self.round_number_intervals:
+            return []
+        
+        intervals = self.round_number_intervals[symbol]
+        round_numbers = []
+        
+        for interval in intervals:
+            # Find nearest round numbers above and below
+            lower = (price // interval) * interval
+            upper = lower + interval
+            
+            round_numbers.extend([lower, upper])
+        
+        # Add these as zones if not already tracked
+        for rn in round_numbers:
+            if not self._zone_exists(symbol, rn, 'round_number'):
+                zone = LiquidityZone(
+                    symbol=symbol,
+                    price=rn,
+                    zone_type='round_number',
+                    confidence=0.7,  # Round numbers have inherent confidence
+                    hit_count=0,
+                    rejection_count=0,
+                    breakthrough_count=0,
+                    consolidation_count=0,
+                    last_interaction=datetime.now(timezone.utc),
+                    created_at=datetime.now(timezone.utc)
+                )
+                self.zones[symbol].append(zone)
+                self._save_zone(zone)
+        
+        return round_numbers
+    
+    def update_session_levels(self, symbol: str, session: str, high: float, low: float):
+        """Update session high/low levels"""
+        self.session_levels[symbol][f'{session}_high'] = high
+        self.session_levels[symbol][f'{session}_low'] = low
+        
+        # Add as zones
+        for level_type, level_price in [(f'{session}_high', high), (f'{session}_low', low)]:
+            if not self._zone_exists(symbol, level_price, 'session_level'):
+                zone = LiquidityZone(
+                    symbol=symbol,
+                    price=level_price,
+                    zone_type='session_level',
+                    confidence=0.8,
+                    hit_count=0,
+                    rejection_count=0,
+                    breakthrough_count=0,
+                    consolidation_count=0,
+                    last_interaction=datetime.now(timezone.utc),
+                    created_at=datetime.now(timezone.utc)
+                )
+                self.zones[symbol].append(zone)
+                self._save_zone(zone)
+    
+    def _zone_exists(self, symbol: str, price: float, zone_type: str, tolerance: float = 0.5) -> bool:
+        """Check if zone already exists within tolerance"""
+        for zone in self.zones[symbol]:
+            if zone.zone_type == zone_type and abs(zone.price - price) < tolerance:
+                return True
+        return False
+    
+    def find_nearest_zone(self, symbol: str, price: float, direction: str = 'above',
+                         min_confidence: float = 0.5) -> Optional[LiquidityZone]:
+        """Find nearest liquidity zone in specified direction"""
+        filtered_zones = [z for z in self.zones[symbol] if z.confidence >= min_confidence]
+        
+        if direction == 'above':
+            above_zones = [z for z in filtered_zones if z.price > price]
+            if above_zones:
+                return min(above_zones, key=lambda z: z.price - price)
+        else:  # below
+            below_zones = [z for z in filtered_zones if z.price < price]
+            if below_zones:
+                return max(below_zones, key=lambda z: price - z.price)
+        
+        return None
+    
+    def get_optimal_stop_loss(self, symbol: str, entry_price: float, direction: str,
+                             default_distance: float = 5.0) -> float:
+        """Calculate optimal stop loss beyond nearest liquidity zone"""
+        if direction == 'LONG':
+            # Put stop below nearest support
+            zone = self.find_nearest_zone(symbol, entry_price, 'below')
+            if zone:
+                # Place stop 2-3 ticks below the zone
+                buffer = self._get_buffer(symbol)
+                stop = zone.price - buffer
+                logger.info(f"📍 {symbol} LONG stop @ {stop:.2f} (below liquidity zone @ {zone.price:.2f})")
+                return stop
+            else:
+                return entry_price - default_distance
+        else:  # SHORT
+            # Put stop above nearest resistance
+            zone = self.find_nearest_zone(symbol, entry_price, 'above')
+            if zone:
+                buffer = self._get_buffer(symbol)
+                stop = zone.price + buffer
+                logger.info(f"📍 {symbol} SHORT stop @ {stop:.2f} (above liquidity zone @ {zone.price:.2f})")
+                return stop
+            else:
+                return entry_price + default_distance
+    
+    def get_optimal_take_profit(self, symbol: str, entry_price: float, direction: str,
+                               risk_reward: float = 2.0, stop_loss: float = None) -> float:
+        """Calculate optimal take profit before next liquidity zone"""
+        if direction == 'LONG':
+            # Target before nearest resistance
+            zone = self.find_nearest_zone(symbol, entry_price, 'above')
+            if zone:
+                buffer = self._get_buffer(symbol)
+                target = zone.price - buffer
+                
+                # Ensure minimum risk/reward ratio
+                if stop_loss:
+                    risk = entry_price - stop_loss
+                    reward = target - entry_price
+                    if reward / risk < risk_reward:
+                        # Extend target to meet risk/reward
+                        target = entry_price + (risk * risk_reward)
+                
+                logger.info(f"📍 {symbol} LONG target @ {target:.2f} (before liquidity zone @ {zone.price:.2f})")
+                return target
+            else:
+                # No zone found, use traditional calculation
+                if stop_loss:
+                    risk = entry_price - stop_loss
+                    return entry_price + (risk * risk_reward)
+                return entry_price + (entry_price * 0.01)  # 1% default
+        else:  # SHORT
+            zone = self.find_nearest_zone(symbol, entry_price, 'below')
+            if zone:
+                buffer = self._get_buffer(symbol)
+                target = zone.price + buffer
+                
+                if stop_loss:
+                    risk = stop_loss - entry_price
+                    reward = entry_price - target
+                    if reward / risk < risk_reward:
+                        target = entry_price - (risk * risk_reward)
+                
+                logger.info(f"📍 {symbol} SHORT target @ {target:.2f} (before liquidity zone @ {zone.price:.2f})")
+                return target
+            else:
+                if stop_loss:
+                    risk = stop_loss - entry_price
+                    return entry_price - (risk * risk_reward)
+                return entry_price - (entry_price * 0.01)
+    
+    def _get_buffer(self, symbol: str) -> float:
+        """Get appropriate buffer distance for symbol"""
+        buffers = {
+            'GC': 2.0,   # $2 buffer for gold
+            'SI': 0.10,  # $0.10 buffer for silver
+            'PL': 3.0,   # $3 buffer for platinum
+            'HG': 0.02,  # $0.02 buffer for copper
+            'NQ': 10.0   # 10 point buffer for Nasdaq
+        }
+        return buffers.get(symbol, 1.0)
+    
+    def record_price_interaction(self, symbol: str, current_price: float):
+        """Record interaction with liquidity zones"""
+        # Check if price is near any zones
+        for zone in self.zones[symbol]:
+            distance = abs(current_price - zone.price)
+            threshold = self._get_buffer(symbol)
+            
+            if distance < threshold:
+                # Price is interacting with this zone
+                zone.hit_count += 1
+                zone.last_interaction = datetime.now(timezone.utc)
+                
+                # Analyze behavior (simplified - needs price history for full analysis)
+                if len(self.price_history[symbol]) >= 3:
+                    prices = list(self.price_history[symbol])
+                    
+                    # Check for rejection
+                    if (prices[-2] > zone.price > prices[-1]) or (prices[-2] < zone.price < prices[-1]):
+                        zone.rejection_count += 1
+                        self._log_interaction(symbol, zone.price, 'rejection',
+                                            prices[-2], prices[-1])
+                
+                # Update confidence based on interactions
+                zone.confidence = self._calculate_confidence(zone)
+                
+                # Detect patterns
+                if zone.hit_count >= 3:
+                    rejection_rate = zone.rejection_count / zone.hit_count
+                    zone.tends_to_reject_first = rejection_rate > 0.6
+                
+                self._save_zone(zone)
+    
+    def _calculate_confidence(self, zone: LiquidityZone) -> float:
+        """Calculate zone confidence based on historical behavior"""
+        base_confidence = 0.5
+        
+        # Increase confidence with more interactions
+        interaction_bonus = min(0.3, zone.hit_count * 0.05)
+        
+        # Increase confidence with consistent rejections
+        if zone.hit_count > 0:
+            rejection_rate = zone.rejection_count / zone.hit_count
+            rejection_bonus = rejection_rate * 0.2
+        else:
+            rejection_bonus = 0
+        
+        # Round numbers have inherent confidence
+        type_bonus = 0.2 if zone.zone_type == 'round_number' else 0.1
+        
+        confidence = base_confidence + interaction_bonus + rejection_bonus + type_bonus
+        return min(1.0, confidence)
+    
+    def cleanup_weak_zones(self, days_old: int = 30, min_confidence: float = 0.3):
+        """Remove low-confidence zones that haven't been hit recently"""
+        now = datetime.now(timezone.utc)
+        
+        for symbol in list(self.zones.keys()):
+            zones_to_remove = []
+            
+            for zone in self.zones[symbol]:
+                days_since_interaction = (now - zone.last_interaction).days
+                
+                if zone.confidence < min_confidence and days_since_interaction > days_old:
+                    zones_to_remove.append(zone)
+                    logger.info(f"🗑️  Removing weak zone: {symbol} @ {zone.price:.2f} "
+                              f"(confidence: {zone.confidence:.2f})")
+            
+            # Remove from memory
+            for zone in zones_to_remove:
+                self.zones[symbol].remove(zone)
+            
+            # Remove from database
+            with sqlite3.connect(self.db_path) as conn:
+                for zone in zones_to_remove:
+                    conn.execute('''
+                        DELETE FROM liquidity_zones 
+                        WHERE symbol = ? AND price = ? AND zone_type = ?
+                    ''', (zone.symbol, zone.price, zone.zone_type))
+                conn.commit()
+    
+    def get_zone_summary(self, symbol: str) -> str:
+        """Get summary of zones for a symbol"""
+        zones = sorted(self.zones[symbol], key=lambda z: z.price)
+        
+        if not zones:
+            return f"No liquidity zones tracked for {symbol}"
+        
+        summary = [f"\n{symbol} Liquidity Zones:"]
+        for zone in zones:
+            summary.append(
+                f"  ${zone.price:.2f} ({zone.zone_type}) - "
+                f"Confidence: {zone.confidence:.2f}, Hits: {zone.hit_count}, "
+                f"Rejections: {zone.rejection_count}"
+            )
+        
+        return "\n".join(summary)
